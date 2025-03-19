@@ -9,6 +9,8 @@ output: html_document
 
 ```{r, warning=FALSE, message=FALSE}
 
+setwd ("../..")
+
 genotypes <- read.table("fang_et_al_genotypes.txt", header = T, sep = "\t", stringsAsFactors = F)
 
 snp <- read.table("snp_position.txt", header = T, sep = "\t", stringsAsFactors = F)
