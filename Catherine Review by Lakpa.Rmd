@@ -234,3 +234,6 @@ ggplot(combined_corn_data_long, aes(x = Chromosome, y = count, fill = zygocity_t
 
 ```
 #Comment 6:Replacing V1:V2548 with starts_with("V) maked code more flexible assuming your columns follows a consistent naming pattern.Overall looks good. 
+
+#Comment 7: Own visualization part is missing. For example, I plot the distribution of homozygous SNPs across different positions. 
+
