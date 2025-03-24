@@ -1,0 +1,236 @@
+---
+title: "Lakpa_Review.Rmd"
+output: html_document
+date: "2025-03-24"
+---
+
+#Comment1: When I ran this chunk of code, there was error in file(file, "rt"); cannot open the connection. I think R is not been able to locate the file. I think you have set two directories up from the current directory. I don't see any fang and snp file at your working directory. 
+
+## Required files and packages
+
+```{r, warning=FALSE, message=FALSE}
+
+setwd ("../..")
+genotypes <- read.table("fang_et_al_genotypes.txt", header = T, sep = "\t", stringsAsFactors = F)
+snp <- read.table("snp_position.txt", header = T, sep = "\t", stringsAsFactors = F)
+
+library(tidyverse)
+library(ggplot2)
+
+```
+#Comment1, I ran this files using below code
+```{r}
+genotypes <- read_tsv("https://github.com/EEOB-BioData/BCB546_Spring2025/raw/main/assignments/UNIX_Assignment/fang_et_al_genotypes.txt")
+snp <- read_tsv("https://github.com/EEOB-BioData/BCB546_Spring2025/raw/main/assignments/UNIX_Assignment/snp_position.txt")
+```
+#Overall nice work on Data Inspection.
+
+
+## Data Processing
+
+#Comment2: When I ran the code, it gave me an error as #Warning in file(file, ifelse(append, "a", "w")) :cannot open file 'Teosinte_Chromosome_Increasing_1.txt': Read-only file system Error in file(file, ifelse(append, "a", "w")) : cannot open the connection. Try creating a directory where all your maize files can be stored at which helps in easy for documentation. 
+
+#Comment3: I would recommend avoiding using the same variable maize_tmp twice in the loop for both incresing and decreasing to avoid confusion. Try instead use maize_tmp_inc for increasing and maize_tmp-dec for decreasing order. I have aldo provided code. 
+
+```{r}
+maize_tmp_inc <- combined_maize %>%
+  filter(Chromosome == !!chromosome) %>%
+  arrange(Position)
+
+write.table(maize_tmp_inc, paste0("Maize_Chromosome_Increasing_", chromosome, ".txt"), 
+            row.names = FALSE, sep = "\t", quote = FALSE)
+
+maize_tmp_dec <- maize_tmp_inc %>%
+  arrange(desc(Position)) %>%
+  mutate_all(~ str_replace_all(., "\\?", "-"))
+
+write.table(maize_tmp_dec, paste0("Maize_Chromosome_Decreasing_", chromosome, ".txt"), 
+            row.names = FALSE, sep = "\t", quote = FALSE)
+```
+
+
+
+```{r}
+#For the Maize data create a data set containing the maize data from Fang et al
+maize_data <- genotypes %>%
+  filter(Group %in% c("ZMMIL","ZMMLR","ZMMMR"))
+
+#transpose the maize data
+transposed_maize_data <- t(maize_data)
+
+#Turn the transposed data into a data frame rather than a matrix
+transposed_maize_data_column <- transposed_maize_data %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "SNP_ID")
+
+#Remove headings from transpose the maize data
+noheading_transposed_maize <- transposed_maize_data_column[-c(1, 2, 3), ]
+
+#join the noheading transposed maize and snp data sets
+combined_maize <- merge(snp, noheading_transposed_maize, by = "SNP_ID", all = TRUE)
+
+#make new files for each chromosomes
+for (chromosome in 1:10){
+  maize_tmp <- combined_maize %>%
+    filter(Chromosome == !!chromosome) %>%
+    arrange(Position)
+  write.table(maize_tmp, paste0("Maize_Chromosome_Increasing_", chromosome, ".txt"), row.names = T)
+  
+  maize_tmp <- maize_tmp %>%
+    arrange(desc(Position)) %>%
+    mutate_all(funs(str_replace_all(., "\\?","-")))
+  write.table(maize_tmp, paste0("Maize_Chromosome_Decreasing_", chromosome, ".txt"), row.names = T)
+  
+}
+```
+
+#Same as comment 2,Error while running the file and comment 3, avoid using same variable twice for the loop. 
+
+```{r}
+#repeat for Teosinte data
+teosinte_data <- genotypes %>%
+  filter(Group %in% c("ZMPBA","ZMPIL","ZMPJA"))
+
+transposed_teosinte_data <- t(teosinte_data)
+
+transposed_teosinte_data_column <- transposed_teosinte_data %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "SNP_ID")
+
+noheading_transposed_teosinte <- transposed_teosinte_data_column[-c(1, 2, 3), ]
+
+combined_teosinte <- merge(snp, noheading_transposed_teosinte, by = "SNP_ID", all = TRUE)
+
+for (chromosome in 1:10){
+  teosinte_tmp <- combined_teosinte %>%
+    filter(Chromosome == !!chromosome) %>%
+    arrange(Position)
+  write.table(teosinte_tmp, paste0("Teosinte_Chromosome_Increasing_", chromosome, ".txt"), row.names = T)
+  
+  teosinte_tmp <- teosinte_tmp %>%
+    arrange(desc(Position)) %>%
+    mutate_all(funs(str_replace_all(., "\\?","-")))
+  write.table(teosinte_tmp, paste0("Teosinte_Chromosome_Decreasing_", chromosome, ".txt"), row.names = T)
+  
+}
+```
+#Comment4: Yours code is well strctured. 
+
+#Part 2
+
+##SNPs per Chromosome
+
+```{r}
+#Create a data set containing both the maize and teosinte data from Fang et al
+corn_data <- genotypes %>%
+  filter(Group %in% c("ZMMIL","ZMMLR","ZMMMR", "ZMPBA","ZMPIL","ZMPJA"))
+
+transposed_corn_data <- t(corn_data)
+
+transposed_corn_data_column <- transposed_corn_data %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "SNP_ID")
+
+noheading_corn_genotypes <- transposed_corn_data_column[-c(1, 2, 3), ]
+
+
+combined_corn <- merge(snp, noheading_corn_genotypes, by = "SNP_ID", all = TRUE)
+
+#count the number of SNPs per chromosome
+snp_chrom <- combined_corn %>%
+group_by(Chromosome) %>%
+summarize(SNP_ID= n())
+
+ggplot(snp_chrom, aes(x=Chromosome, y=SNP_ID, fill=SNP_ID)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  ggtitle("SNPs per Chromosome") +
+  labs(y="SNP Count", x="Chromosome")+
+  scale_x_discrete(limits = c(1:10,"multiple","unknown"))
+```
+
+```{r}
+ggplot(corn_data, aes(Group)) +
+  geom_bar(aes(fill=Group)) +
+    ggtitle("SNPs for Maize and Teosinte Groups")
+```
+#Comment 5: You can use the below code for cleaner version by using across() inside summarise()
+
+```{r}
+corn_data_sum <- corn_data_sorted %>%
+  pivot_longer(cols = starts_with("abph1"), names_to = "SNP", values_to = "zygocity") %>%
+  group_by(Sample_ID, JG_OTU, Group) %>%
+  summarise(across(homozygous:unknown, ~ sum(. == cur_column(), na.rm = TRUE), .names = "{.col}"))
+```
+
+##Amount of Heterozygosity
+
+```{r}
+corn_data <- corn_data %>%
+  mutate_all(funs(str_replace_all(., "\\?/\\?","NA")))
+
+homozygous_list <- c("A/A", "T/T", "C/C", "G/G")
+
+corn_data_sorted <- corn_data %>%
+  mutate(across(abph1.20:zmm3.4, ~ case_when(. %in% homozygous_list ~ "homozygous",
+                                           . == "NA" ~ NA,
+                                           .default = "heterozygous")))
+
+corn_data_sum <- corn_data_sorted %>%
+  pivot_longer(cols = abph1.20:zmm3.4, names_to = "SNP", values_to = "zygocity") %>%
+  group_by(Sample_ID, JG_OTU, Group) %>%
+  summarise(homozygous = sum(zygocity == "homozygous", na.rm = TRUE),
+            heterozygous = sum(zygocity == "heterozygous", na.rm = TRUE),
+            unknown = sum(is.na(zygocity), na.rm = TRUE))
+
+corn_data_long <- corn_data_sum %>%
+  pivot_longer(cols = c(homozygous, heterozygous, unknown), 
+               names_to = "zygocity_type", 
+               values_to = "count")
+
+ggplot(corn_data_long, aes(x = Group, y = count, fill = zygocity_type)) +
+  geom_bar(stat = "identity", position = "fill") +
+  ggtitle("Heterzygocity by Group") +
+  labs(x = "Group", y = "Count", fill = "Zygocity Type")
+  
+```
+
+```{r}
+ggplot(corn_data_long, aes(x = Sample_ID, y = count, fill = zygocity_type)) +
+  geom_bar(stat = "identity", position = "fill") +
+  ggtitle("Heterozygocity by Sample") +
+  labs(x = "Sample", y = "Count", fill = "Zygocity Type")
+
+```
+
+
+```{r}
+combined_corn <- combined_corn %>%
+  mutate_all(funs(str_replace_all(., "\\?/\\?","NA")))
+
+homozygous_list <- c("A/A", "T/T", "C/C", "G/G")
+
+combined_corn_data_sorted <- combined_corn %>%
+  mutate(across(V1:V2548, ~ case_when(. %in% homozygous_list ~ "homozygous",
+                                           . == "NA" ~ NA,
+                                           .default = "heterozygous")))
+
+combined_corn_data_sum <- combined_corn_data_sorted %>%
+  pivot_longer(cols = V1:V2548, names_to = "SNP", values_to = "zygocity") %>%
+  group_by(SNP_ID, Chromosome) %>%
+  summarise(homozygous = sum(zygocity == "homozygous", na.rm = TRUE),
+            heterozygous = sum(zygocity == "heterozygous", na.rm = TRUE),
+            unknown = sum(is.na(zygocity), na.rm = TRUE))
+
+combined_corn_data_long <- combined_corn_data_sum %>%
+  pivot_longer(cols = c(homozygous, heterozygous, unknown), 
+               names_to = "zygocity_type", 
+               values_to = "count")
+
+ggplot(combined_corn_data_long, aes(x = Chromosome, y = count, fill = zygocity_type)) +
+  geom_bar(stat = "identity", position = "fill") +
+  ggtitle("Heterzygocity by Chromosome") +
+  labs(x = "Chromosome", y = "Count", fill = "Zygocity Type")+
+  scale_x_discrete(limits = c(1:10,"multiple","unknown"))
+
+```
+#Comment 6:Replacing V1:V2548 with starts_with("V) maked code more flexible assuming your columns follows a consistent naming pattern.Overall looks good. 
