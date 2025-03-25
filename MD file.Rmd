@@ -8,16 +8,13 @@ output: html_document
 ## Required files and packages
 
 ```{r, warning=FALSE, message=FALSE}
-
-setwd ("../..")
-
-genotypes <- read.table("fang_et_al_genotypes.txt", header = T, sep = "\t", stringsAsFactors = F)
-
-snp <- read.table("snp_position.txt", header = T, sep = "\t", stringsAsFactors = F)
-
 library(tidyverse)
 
 library(ggplot2)
+
+genotypes <- read_tsv("https://github.com/EEOB-BioData/BCB546_Spring2025/raw/main/assignments/UNIX_Assignment/fang_et_al_genotypes.txt")
+snp <- read_tsv("https://github.com/EEOB-BioData/BCB546_Spring2025/raw/main/assignments/UNIX_Assignment/snp_position.txt")
+
 ```
 
 # Part 1
@@ -75,19 +72,25 @@ noheading_transposed_maize <- transposed_maize_data_column[-c(1, 2, 3), ]
 #join the noheading transposed maize and snp data sets
 combined_maize <- merge(snp, noheading_transposed_maize, by = "SNP_ID", all = TRUE)
 
+#create a file directory for maize
+Maize_Chromosome_Files <- "Maize_Chromosome"
+if (!dir.exists(Maize_Chromosome_Files)) {
+  dir.create(Maize_Chromosome_Files)}
+
 #make new files for each chromosomes
 for (chromosome in 1:10){
-  maize_tmp <- combined_maize %>%
+  maize_tmp_inc <- combined_maize %>%
     filter(Chromosome == !!chromosome) %>%
     arrange(Position)
-  write.table(maize_tmp, paste0("Maize_Chromosome_Increasing_", chromosome, ".txt"), row.names = T)
+    file_path <- file.path(Maize_Chromosome_Files, paste0("Maize_Chromosome_Increasing_", chromosome, ".txt"))
+    write.table(maize_tmp_inc, file_path, row.names = T)
   
-  maize_tmp <- maize_tmp %>%
+  maize_tmp_dec <- combined_maize %>%
+  filter(Chromosome == !!chromosome) %>%
     arrange(desc(Position)) %>%
     mutate_all(funs(str_replace_all(., "\\?","-")))
-  write.table(maize_tmp, paste0("Maize_Chromosome_Decreasing_", chromosome, ".txt"), row.names = T)
-  
-}
+    file_path <- file.path(Maize_Chromosome_Files, paste0("Maize_Chromosome_Decreasing_", chromosome, ".txt"))
+    write.table(maize_tmp_dec, file_path, row.names = T)}
 ```
 
 ```{r}
@@ -105,18 +108,23 @@ noheading_transposed_teosinte <- transposed_teosinte_data_column[-c(1, 2, 3), ]
 
 combined_teosinte <- merge(snp, noheading_transposed_teosinte, by = "SNP_ID", all = TRUE)
 
+Teosinte_Chromosome_Files <- "Teosinte_Chromosome"
+if (!dir.exists(Teosinte_Chromosome_Files)) {
+  dir.create(Teosinte_Chromosome_Files)}
+
 for (chromosome in 1:10){
-  teosinte_tmp <- combined_teosinte %>%
+  teosinte_tmp_inc <- combined_teosinte %>%
     filter(Chromosome == !!chromosome) %>%
     arrange(Position)
-  write.table(teosinte_tmp, paste0("Teosinte_Chromosome_Increasing_", chromosome, ".txt"), row.names = T)
+    file_path <- file.path(Teosinte_Chromosome_Files, paste0("Teosinte_Chromosome_Increasing_", chromosome, ".txt"))
+    write.table(maize_tmp_inc, file_path, row.names = T)
   
-  teosinte_tmp <- teosinte_tmp %>%
+  teosinte_tmp_dec <- combined_teosinte %>%
+  filter(Chromosome == !!chromosome) %>%
     arrange(desc(Position)) %>%
     mutate_all(funs(str_replace_all(., "\\?","-")))
-  write.table(teosinte_tmp, paste0("Teosinte_Chromosome_Decreasing_", chromosome, ".txt"), row.names = T)
-  
-}
+    file_path <- file.path(Teosinte_Chromosome_Files, paste0("Teosinte_Chromosome_Decreasing_", chromosome, ".txt"))
+    write.table(maize_tmp_dec, file_path, row.names = T)}
 ```
 
 #Part 2
